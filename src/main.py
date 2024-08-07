@@ -26,7 +26,7 @@ def receive_response(sock):
         msg.ParseFromString(data)
         
         print(f"Resposta recebida de {addr}:")
-        print(f"Team: {msg.robot_id}")
+        print(f"Team: {msg.team_name}")
         print(f"Team Color: {msg.team_color}")
 
         return addr[0]
