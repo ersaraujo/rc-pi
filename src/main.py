@@ -28,6 +28,8 @@ def receive_response(sock):
         print(f"Resposta recebida de {addr}:")
         print(f"Team: {msg.robot_id}")
         print(f"Team Color: {msg.team_color}")
+
+        return addr[0]
     
     except socket.timeout:
         print("timout")
@@ -48,7 +50,7 @@ def main():
     receive_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
     
     while ip_pc is None:
-        receive_response(receive_sock)
+        ip_pc = receive_response(receive_sock)
 
     send_sock.close()
     receive_sock.close()
