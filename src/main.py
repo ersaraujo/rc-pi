@@ -1,32 +1,57 @@
 import socket
+import struct
 import time
-
 from proto import RComm_pb2 as rcomm
 
 TEAM_NAME = "ROBOCIN"
 
-def send_request(sock, multicast_group, port):
+MULTICAST_GROUP = '224.0.0.1'
+SEND_PORT = 19900
+RECEIVE_PORT = 19901
+
+def send_request(sock):
     _msgPublish = rcomm.DiscoveryRequest()
     _msgPublish.robot_id = 1
     _msgPublish.team_name = TEAM_NAME
     serialized_msg = _msgPublish.SerializeToString()
     
-    sock.sendto(serialized_msg, (multicast_group, port))
+    sock.sendto(serialized_msg, (MULTICAST_GROUP, SEND_PORT))
+
+def receive_response(sock):
+    try:
+        sock.settimeout(5.0)
+        data, addr = sock.recvfrom(1024)
+        
+        msg = rcomm.DiscoveryResponse() 
+        msg.ParseFromString(data)
+        
+        print(f"Resposta recebida de {addr}:")
+        print(f"Team: {msg.robot_id}")
+        print(f"Team Color: {msg.team_color}")
+    
+    except socket.timeout:
+        print("timout")
+        send_request(sock)
 
 def main():
     ip_pc = None
-    multicast_group = '224.0.0.1'
-    port = 19900
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
-
+    
+    # Configura o socket para enviar mensagens
+    send_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    send_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
+    
+    receive_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    receive_sock.bind(('', RECEIVE_PORT))
+    receive_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    mreq = struct.pack('4sl', socket.inet_aton(MULTICAST_GROUP), socket.INADDR_ANY)
+    receive_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    
     while ip_pc is None:
-        send_request(sock, multicast_group, port)
-        print(f"Mensagem enviada para {multicast_group}:{port}")
-        time.sleep(0.2)
+        receive_response(receive_sock)
 
-    sock.close()
+    send_sock.close()
+    receive_sock.close()
 
 if __name__ == "__main__":
     main()
