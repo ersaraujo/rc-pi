@@ -37,11 +37,12 @@ def receive_response(sock):
         send_request(sock)
 
 def packet_available(sock):
+    msg = rcomm.SSLSpeed()
     while True:
         data, _ = sock.recvfrom(1024)
         
         if data:
-            msg = rcomm.SSLSpeed()
+            msg.ParseFromString(data)
             
             return True, msg
         
