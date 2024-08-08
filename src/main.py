@@ -71,7 +71,7 @@ def main():
             newMsg, msg = packet_available(pc_sock)
         
             if newMsg:
-                print(f"Received from {ip_pc}:")
+                print(f"Received from PC: {msg}")
                 send2robot(msg, robot_sock)
 
         except KeyboardInterrupt:
