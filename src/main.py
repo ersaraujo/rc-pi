@@ -65,9 +65,6 @@ def main():
 
     robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'eth0'))
-    
-    while ip_pc is None:
-        ip_pc = receive_response(pc_sock)
 
     while True:
         try:
