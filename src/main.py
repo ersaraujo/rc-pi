@@ -1,6 +1,7 @@
 import socket
 import struct
 import time
+from proto import robot_info_pb2 as core
 from proto import RComm_pb2 as rcomm
 
 TEAM_NAME = "ROBOCIN"
@@ -37,16 +38,61 @@ def receive_response(sock):
         send_request(sock)
 
 def packet_available(sock):
-    msg = rcomm.SSLSpeed()
-    while True:
+    msg = core.RobotInfo()
+    try:
         data, _ = sock.recvfrom(1024)
-        
+
         if data:
-            msg.ParseFromString(data)
+            msg.ParseFromString(data)  # Deserializa a mensagem recebida
+            print("Received packet")
             
+            # Verifica o tipo da mensagem usando oneof
+            if msg.HasField("command"):
+                command = msg.command
+                print(f"Received Command:")
+                # print(f"Message Type: {command.msg_type}")
+                # print(f"Robot ID: {command.robot_id}")
+                # print(f"Game Command: {command.ref_command}")
+                # print(f"Robot Velocity: {command.robot_velocity}")
+                # print(f"Kick Command: {command.kick_command}")
+                # print(f"Dribbler Command: {command.dribbler_command}")
+                # print(f"Robot Flags: Locked={command.robot_flags.robot_locked}, "
+                #       f"Critical Move={command.robot_flags.critical_move}, "
+                #       f"Global Speed={command.robot_flags.global_speed}")
+
+            elif msg.HasField("feedback"):
+                feedback = msg.feedback
+                print(f"Received Feedback:")
+                print(feedback)  # Ajuste conforme necessário para imprimir o feedback
+
             return True, msg
         
         return False, None
+
+    except Exception as e:
+        print(f"Error receiving packet: {e}")
+        return False, None
+    
+def make_command(msg):
+    msg2send = rcomm.SSLSpeed()
+    command = msg.command
+
+    msg2send.id = command.robot_id.number
+    msg2send.vx = command.robot_velocity.velocity.x
+    msg2send.vy = command.robot_velocity.velocity.y
+    msg2send.vw = command.robot_velocity.angular_velocity
+
+    msg2send.front = command.kick_command.is_front
+    msg2send.chip = command.kick_command.is_chip
+    msg2send.charge = command.kick_command.charge_capacitor
+    msg2send.kickStrength = command.kick_command.kick_strength
+
+    msg2send.dribbler = command.dribbler_command.is_active
+    msg2send.dribSpeed = command.dribbler_command.dribbler_speed
+
+
+    print(f"Command to send: {msg2send}")
+    return msg2send
 
 def send2robot(msg, sock):
     serialized_msg = msg.SerializeToString()
@@ -65,21 +111,21 @@ def main():
     pc_sock.bind(('', RECEIVE_PORT))    
 
     robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'eth0'))
+    # robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'wlo'))
 
     while True:
         try:
             newMsg, msg = packet_available(pc_sock)
         
             if newMsg:
-                print(f"Received from PC: {msg}")
-                send2robot(msg, robot_sock)
+                # print(f"Received from PC: {msg}")
+                send2robot(make_command(msg), robot_sock)
 
         except KeyboardInterrupt:
             break
 
     pc_sock.close()
-    robot_sock.close()
+    # robot_sock.close()
 
 if __name__ == "__main__":
     main()

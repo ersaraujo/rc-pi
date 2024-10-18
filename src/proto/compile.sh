@@ -1,3 +1,3 @@
 #!/bin/bash
 
-protoc -I=. --python_out=. RComm.proto
+protoc -I=. --python_out=. *.proto
