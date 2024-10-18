@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package proto.common;
+
+import "geometry.proto";
+
+message RobotPose {
+    Point2Df position = 1;
+    float orientation = 2;
+}
