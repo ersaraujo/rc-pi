@@ -44,52 +44,30 @@ def packet_available(sock):
 
         if data:
             msg.ParseFromString(data)  # Deserializa a mensagem recebida
-            print("Received packet")
-            
-            # Verifica o tipo da mensagem usando oneof
-            if msg.HasField("command"):
-                command = msg.command
-                print(f"Received Command:")
-                # print(f"Message Type: {command.msg_type}")
-                # print(f"Robot ID: {command.robot_id}")
-                # print(f"Game Command: {command.ref_command}")
-                # print(f"Robot Velocity: {command.robot_velocity}")
-                # print(f"Kick Command: {command.kick_command}")
-                # print(f"Dribbler Command: {command.dribbler_command}")
-                # print(f"Robot Flags: Locked={command.robot_flags.robot_locked}, "
-                #       f"Critical Move={command.robot_flags.critical_move}, "
-                #       f"Global Speed={command.robot_flags.global_speed}")
-
-            elif msg.HasField("feedback"):
-                feedback = msg.feedback
-                print(f"Received Feedback:")
-                print(feedback)  # Ajuste conforme necessário para imprimir o feedback
-
             return True, msg
         
         return False, None
 
     except Exception as e:
-        print(f"Error receiving packet: {e}")
         return False, None
     
 def make_command(msg):
     msg2send = rcomm.SSLSpeed()
-    command = msg.command
+    for command in msg.output.command:
+        if command.robot_id.number == 1:
+            msg2send.id = command.robot_id.number
+            
+            msg2send.vx = command.robot_velocity.velocity.x
+            msg2send.vy = command.robot_velocity.velocity.y
+            msg2send.vw = command.robot_velocity.angular_velocity
+            
+            msg2send.front = command.kick_command.is_front
+            msg2send.chip = command.kick_command.is_chip
+            msg2send.charge = command.kick_command.charge_capacitor
+            msg2send.kickStrength = command.kick_command.kick_strength
 
-    msg2send.id = command.robot_id.number
-    msg2send.vx = command.robot_velocity.velocity.x
-    msg2send.vy = command.robot_velocity.velocity.y
-    msg2send.vw = command.robot_velocity.angular_velocity
-
-    msg2send.front = command.kick_command.is_front
-    msg2send.chip = command.kick_command.is_chip
-    msg2send.charge = command.kick_command.charge_capacitor
-    msg2send.kickStrength = command.kick_command.kick_strength
-
-    msg2send.dribbler = command.dribbler_command.is_active
-    msg2send.dribSpeed = command.dribbler_command.dribbler_speed
-
+            msg2send.dribbler = command.dribbler_command.is_active
+            msg2send.dribSpeed = command.dribbler_command.dribbler_speed
 
     print(f"Command to send: {msg2send}")
     return msg2send
