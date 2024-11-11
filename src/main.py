@@ -1,8 +1,6 @@
 import socket
 import struct
-import time
-from proto import robot_info_pb2 as core
-from proto import RComm_pb2 as rcomm
+from proto import communication_pb2 as comm
 
 TEAM_NAME = "ROBOCIN"
 
@@ -38,12 +36,12 @@ def receive_response(sock):
         send_request(sock)
 
 def packet_available(sock):
-    msg = core.RobotInfo()
+    msg = comm.Communication()
     try:
         data, _ = sock.recvfrom(1024)
 
         if data:
-            msg.ParseFromString(data)  # Deserializa a mensagem recebida
+            msg.ParseFromString(data)
             return True, msg
         
         return False, None
@@ -52,25 +50,14 @@ def packet_available(sock):
         return False, None
     
 def make_command(msg):
-    msg2send = rcomm.SSLSpeed()
-    for command in msg.output.command:
-        if command.robot_id.number == 1:
-            msg2send.id = command.robot_id.number
-            
-            msg2send.vx = command.robot_velocity.velocity.x
-            msg2send.vy = command.robot_velocity.velocity.y
-            msg2send.vw = command.robot_velocity.angular_velocity
-            
-            msg2send.front = command.kick_command.is_front
-            msg2send.chip = command.kick_command.is_chip
-            msg2send.charge = command.kick_command.charge_capacitor
-            msg2send.kickStrength = command.kick_command.kick_strength
+    msg2send = comm.OutputRobot()
+    for command in msg.output:
+        if command.id == 2:
+            msg2send = command
+            return msg2send
 
-            msg2send.dribbler = command.dribbler_command.is_active
-            msg2send.dribSpeed = command.dribbler_command.dribbler_speed
+    return None    
 
-    print(f"Command to send: {msg2send}")
-    return msg2send
 
 def send2robot(msg, sock):
     serialized_msg = msg.SerializeToString()
@@ -96,14 +83,16 @@ def main():
             newMsg, msg = packet_available(pc_sock)
         
             if newMsg:
-                # print(f"Received from PC: {msg}")
-                send2robot(make_command(msg), robot_sock)
+                print(f"Received from PC: {msg}")
+                if make_command(msg) is not None:
+                    print("Sending to robot")
+                    send2robot(make_command(msg), robot_sock)
 
         except KeyboardInterrupt:
             break
 
     pc_sock.close()
-    # robot_sock.close()
+    robot_sock.close()
 
 if __name__ == "__main__":
     main()
