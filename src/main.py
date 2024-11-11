@@ -76,7 +76,7 @@ def main():
     pc_sock.bind(('', RECEIVE_PORT))    
 
     robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    # robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'wlo'))
+    robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'wlo'))
 
     while True:
         try:
