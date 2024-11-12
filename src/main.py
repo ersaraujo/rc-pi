@@ -58,7 +58,6 @@ def make_command(msg):
 
     return None    
 
-
 def send2robot(msg, sock):
     serialized_msg = msg.SerializeToString()
     sock.sendto(serialized_msg, (ROBOT_IP, SEND_PORT))
@@ -76,7 +75,7 @@ def main():
     pc_sock.bind(('', RECEIVE_PORT))    
 
     robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'wlo'))
+    robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'eth0'))
 
     while True:
         try:
