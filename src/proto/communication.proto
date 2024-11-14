@@ -24,3 +24,17 @@ message Flags {
   bool critical_move = 2;
   bool global_speed = 3;
 }
+
+message RobotInfo {
+  uint32 id = 1;
+  double vx = 2;
+  double vy = 3;
+  double w = 4;
+  double battery = 5;
+  double kickLoad = 6;
+  bool ball = 7;
+  double m1 = 8;
+  double m2 = 9;
+  double m3 = 10;
+  double m4 = 11;
+}
