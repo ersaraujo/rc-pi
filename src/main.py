@@ -1,42 +1,15 @@
 import socket
 import struct
+import csv
 from proto import communication_pb2 as comm
-
-TEAM_NAME = "ROBOCIN"
 
 MULTICAST_GROUP = '224.0.0.1'
 ROBOT_IP = '199.0.1.1'
 SEND_PORT = 19900
 RECEIVE_PORT = 19901
 
-def send_request(sock):
-    _msgPublish = rcomm.DiscoveryRequest()
-    _msgPublish.robot_id = 1
-    _msgPublish.team_name = TEAM_NAME
-    serialized_msg = _msgPublish.SerializeToString()
-    
-    sock.sendto(serialized_msg, (MULTICAST_GROUP, SEND_PORT))
-
-def receive_response(sock):
-    try:
-        sock.settimeout(5.0)
-        data, addr = sock.recvfrom(1024)
-        
-        msg = rcomm.DiscoveryResponse() 
-        msg.ParseFromString(data)
-        
-        print(f"Resposta recebida de {addr}:")
-        print(f"Team: {msg.team_name}")
-        print(f"Team Color: {msg.team_color}")
-
-        return addr[0]
-    
-    except socket.timeout:
-        print("timout")
-        send_request(sock)
-
 def packet_available(sock):
-    msg = comm.Communication()
+    msg = comm.protoGlobalSpeedSSL()
     try:
         data, _ = sock.recvfrom(1024)
 
@@ -49,48 +22,54 @@ def packet_available(sock):
     except Exception as e:
         return False, None
     
-def make_command(msg):
-    msg2send = comm.OutputRobot()
-    for command in msg.output:
-        if command.id == 2:
-            msg2send = command
-            return msg2send
-
-    return None    
-
-def send2robot(msg, sock):
-    serialized_msg = msg.SerializeToString()
-    sock.sendto(serialized_msg, (ROBOT_IP, SEND_PORT))
-
-def main():
-    ip_pc = None
+def saveLog(data, csv_file):
+    write_header = False
     
-    pc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    mreq = struct.pack('4sl', socket.inet_aton(MULTICAST_GROUP), socket.INADDR_ANY)
-    
-    pc_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
-    pc_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    pc_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-    
-    pc_sock.bind(('', RECEIVE_PORT))    
+    try:
+        with open(csv_file, "x", newline="") as file:
+            write_header = True
+    except FileExistsError:
+        pass
+
+    with open(csv_file, "a", newline="") as file:
+        writer = csv.writer(file)
+
+        if write_header:
+            writer.writerow([
+                "x", "y", "theta", "count",
+                "packet_x", "packet_y", "packet_theta",
+                "odometry_x", "odometry_y", "odometry_theta",
+                "global_vx", "global_vy", "global_w",
+                "local_vx", "local_vy", "local_w",
+                "command_vx", "command_vy", "command_w"
+            ])
+
+        writer.writerow([
+            data.x, data.y, data.theta, data.count,
+            data.packet_x, data.packet_y, data.packet_theta,
+            data.odometry_x, data.odometry_y, data.odometry_theta,
+            data.global_vx, data.global_vy, data.global_w,
+            data.local_vx, data.local_vy, data.local_w,
+            data.command_vx, data.command_vy, data.command_w
+        ])
+
+def main():  
 
     robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'eth0'))
+    robot_sock.bind((ROBOT_IP, RECEIVE_PORT))
 
-    while True:
-        try:
-            newMsg, msg = packet_available(pc_sock)
+    try:
+        while True:
+            newMsg, msg = packet_available(robot_sock)
         
             if newMsg:
-                print(f"Received from PC: {msg}")
-                if make_command(msg) is not None:
-                    print("Sending to robot")
-                    send2robot(make_command(msg), robot_sock)
+                print(f"Received from PC")
+                saveLog(msg, "log_position.csv")
 
-        except KeyboardInterrupt:
-            break
+    except KeyboardInterrupt:
+        print("\nExiting...")
 
-    pc_sock.close()
     robot_sock.close()
 
 if __name__ == "__main__":

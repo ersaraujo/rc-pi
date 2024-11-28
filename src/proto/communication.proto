@@ -38,3 +38,25 @@ message RobotInfo {
   double m3 = 10;
   double m4 = 11;
 }
+
+message protoGlobalSpeedSSL{
+  double x = 1;
+  double y = 2;
+  double theta = 3;
+  int32 count = 4;
+  double packet_x = 5;
+  double packet_y = 6;
+  double packet_theta = 7;
+  double odometry_x = 8;
+  double odometry_y = 9;
+  double odometry_theta = 10;
+  double global_vx = 11;
+  double global_vy = 12;
+  double global_w = 13;
+  double local_vx = 14;
+  double local_vy = 15;
+  double local_w = 16;
+  double command_vx = 17;
+  double command_vy = 18;
+  double command_w = 19;
+};
