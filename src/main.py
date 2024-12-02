@@ -25,38 +25,44 @@ def handle_keyboard_commands(sock):
                 command.vy = 0.0
                 command.vw = 0.0
                 print("forward")
+                send2robot(command, sock)
             elif keyboard.is_pressed('s'):
                 command.vx = -1.0
                 command.vy = 0.0
                 command.vw = 0.0
                 print("backward")
+                send2robot(command, sock)
             elif keyboard.is_pressed('a'):
                 command.vx = 0.0
                 command.vy = -1.0
                 command.vw = 0.0
                 print("left")
+                send2robot(command, sock)
             elif keyboard.is_pressed('d'):
                 command.vx = 0.0
                 command.vy = 1.0
                 command.vw = 0.0
                 print("right")
+                send2robot(command, sock)
             elif keyboard.is_pressed('q'):
                 command.vx = 0.0
                 command.vy = 0.0
                 command.vw = 2.0
                 print("cw")
+                send2robot(command, sock)
             elif keyboard.is_pressed('e'):
                 command.vx = 0.0
                 command.vy = 0.0
                 command.vw = -2.0
                 print("ccw")
+                send2robot(command, sock)
             elif keyboard.is_pressed('x'):
                 break
             else:
                 command.vx = 0.0
                 command.vy = 0.0
                 command.vw = 0.0
-            send2robot(command, sock)
+                send2robot(command, sock)
         except KeyboardInterrupt:
             print("\nKeyboard interrupted!")
             break
