@@ -52,7 +52,10 @@ def handle_keyboard_commands(sock):
                 print("ccw")
             elif keyboard.is_pressed('x'):
                 break
-
+            else:
+                command.vx = 0.0
+                command.vy = 0.0
+                command.vw = 0.0
             send2robot(command, sock)
         except KeyboardInterrupt:
             print("\nKeyboard interrupted!")
