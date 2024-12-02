@@ -1,5 +1,6 @@
 import socket
 import struct
+import keyboard
 from proto import communication_pb2 as comm
 
 TEAM_NAME = "ROBOCIN"
@@ -7,71 +8,58 @@ TEAM_NAME = "ROBOCIN"
 MULTICAST_GROUP = '224.0.0.1'
 ROBOT_IP = '199.0.1.1'
 SEND_PORT = 19900
-RECEIVE_PORT = 19901
-
-def send_request(sock):
-    _msgPublish = rcomm.DiscoveryRequest()
-    _msgPublish.robot_id = 1
-    _msgPublish.team_name = TEAM_NAME
-    serialized_msg = _msgPublish.SerializeToString()
-    
-    sock.sendto(serialized_msg, (MULTICAST_GROUP, SEND_PORT))
-
-def receive_response(sock):
-    try:
-        sock.settimeout(5.0)
-        data, addr = sock.recvfrom(1024)
-        
-        msg = rcomm.DiscoveryResponse() 
-        msg.ParseFromString(data)
-        
-        print(f"Resposta recebida de {addr}:")
-        print(f"Team: {msg.team_name}")
-        print(f"Team Color: {msg.team_color}")
-
-        return addr[0]
-    
-    except socket.timeout:
-        print("timout")
-        send_request(sock)
-
-def packet_available(sock):
-    msg = comm.Communication()
-    try:
-        data, _ = sock.recvfrom(1024)
-
-        if data:
-            msg.ParseFromString(data)
-            return True, msg
-        
-        return False, None
-
-    except Exception as e:
-        return False, None
-    
-def make_command(msg):
-    msg2send = comm.OutputRobot()
-    for command in msg.output:
-        if command.id == 2:
-            msg2send = command
-            return msg2send
-
-    return None    
+RECEIVE_PORT = 19901 
 
 def send2robot(msg, sock):
     serialized_msg = msg.SerializeToString()
     sock.sendto(serialized_msg, (ROBOT_IP, SEND_PORT))
 
+
+def handle_keyboard_commands(sock):
+    command = comm.OutputRobot()
+
+    while True:
+        try:
+            if keyboard.is_pressed('w'):
+                command.vx = 1.0
+                command.vy = 0.0
+                command.vw = 0.0
+            elif keyboard.is_pressed('s'):
+                command.vx = -1.0
+                command.vy = 0.0
+                command.vw = 0.0
+            elif keyboard.is_pressed('a'):
+                command.vx = 0.0
+                command.vy = -1.0
+                command.vw = 0.0
+            elif keyboard.is_pressed('d'):
+                command.vx = 0.0
+                command.vy = 1.0
+                command.vw = 0.0
+            elif keyboard.is_pressed('q'):
+                command.vx = 0.0
+                command.vy = 0.0
+                command.vw = 2.0
+            elif keyboard.is_pressed('e'):
+                command.vx = 0.0
+                command.vy = 0.0
+                command.vw = -2.0
+            elif keyboard.is_pressed('x'):
+                break
+
+            send2robot(command, sock)
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupted!")
+            break
+
+
 def main():
-    ip_pc = None
-    
     pc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     mreq = struct.pack('4sl', socket.inet_aton(MULTICAST_GROUP), socket.INADDR_ANY)
     
     pc_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
     pc_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pc_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-    
     pc_sock.bind(('', RECEIVE_PORT))    
 
     robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -79,19 +67,14 @@ def main():
 
     while True:
         try:
-            newMsg, msg = packet_available(pc_sock)
-        
-            if newMsg:
-                print(f"Received from PC: {msg}")
-                if make_command(msg) is not None:
-                    print("Sending to robot")
-                    send2robot(make_command(msg), robot_sock)
+            handle_keyboard_commands(robot_sock)
 
         except KeyboardInterrupt:
             break
 
     pc_sock.close()
     robot_sock.close()
+
 
 if __name__ == "__main__":
     main()
