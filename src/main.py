@@ -24,26 +24,32 @@ def handle_keyboard_commands(sock):
                 command.vx = 1.0
                 command.vy = 0.0
                 command.vw = 0.0
+                print("forward")
             elif keyboard.is_pressed('s'):
                 command.vx = -1.0
                 command.vy = 0.0
                 command.vw = 0.0
+                print("backward")
             elif keyboard.is_pressed('a'):
                 command.vx = 0.0
                 command.vy = -1.0
                 command.vw = 0.0
+                print("left")
             elif keyboard.is_pressed('d'):
                 command.vx = 0.0
                 command.vy = 1.0
                 command.vw = 0.0
+                print("right")
             elif keyboard.is_pressed('q'):
                 command.vx = 0.0
                 command.vy = 0.0
                 command.vw = 2.0
+                print("cw")
             elif keyboard.is_pressed('e'):
                 command.vx = 0.0
                 command.vy = 0.0
                 command.vw = -2.0
+                print("ccw")
             elif keyboard.is_pressed('x'):
                 break
 
