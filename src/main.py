@@ -1,70 +1,43 @@
 import socket
+import random
+import time
 import struct
+
 from proto import communication_pb2 as comm
 
-TEAM_NAME = "ROBOCIN"
-
 MULTICAST_GROUP = '224.0.0.1'
-ROBOT_IP = '199.0.1.1'
 SEND_PORT = 19900
-RECEIVE_PORT = 19901
-
-def send_request(sock):
-    _msgPublish = rcomm.DiscoveryRequest()
-    _msgPublish.robot_id = 1
-    _msgPublish.team_name = TEAM_NAME
-    serialized_msg = _msgPublish.SerializeToString()
     
+def generate_feedback():
+    feedback = comm.Feedback()
+    
+    feedback.id = random.randint(0, 15)
+
+    feedback.battery = round(random.uniform(6.0, 8.4), 2)
+    feedback.kickLoad = round(random.uniform(0.0, 5.0), 2) 
+    feedback.irBall = random.choice([True, False])
+
+    feedback.velocity.m1 = round(random.uniform(-50.0, 50.0), 2)
+    feedback.velocity.m2 = round(random.uniform(-50.0, 50.0), 2)
+    feedback.velocity.m3 = round(random.uniform(-50.0, 50.0), 2)
+    feedback.velocity.m4 = round(random.uniform(-50.0, 50.0), 2)
+
+    feedback.current.m1 = round(random.uniform(0.0, 2.0), 2)
+    feedback.current.m2 = round(random.uniform(0.0, 2.0), 2)
+    feedback.current.m3 = round(random.uniform(0.0, 2.0), 2)
+    feedback.current.m4 = round(random.uniform(0.0, 2.0), 2)
+
+    feedback.timestamp = int(time.time() * 1e3)
+
+    print(feedback)
+
+    return feedback
+
+def send_feedback(msg, sock):
+    serialized_msg = msg.SerializeToString()
     sock.sendto(serialized_msg, (MULTICAST_GROUP, SEND_PORT))
 
-def receive_response(sock):
-    try:
-        sock.settimeout(5.0)
-        data, addr = sock.recvfrom(1024)
-        
-        msg = rcomm.DiscoveryResponse() 
-        msg.ParseFromString(data)
-        
-        print(f"Resposta recebida de {addr}:")
-        print(f"Team: {msg.team_name}")
-        print(f"Team Color: {msg.team_color}")
-
-        return addr[0]
-    
-    except socket.timeout:
-        print("timout")
-        send_request(sock)
-
-def packet_available(sock):
-    msg = comm.Communication()
-    try:
-        data, _ = sock.recvfrom(1024)
-
-        if data:
-            msg.ParseFromString(data)
-            return True, msg
-        
-        return False, None
-
-    except Exception as e:
-        return False, None
-    
-def make_command(msg):
-    msg2send = comm.OutputRobot()
-    for command in msg.output:
-        if command.id == 2:
-            msg2send = command
-            return msg2send
-
-    return None    
-
-def send2robot(msg, sock):
-    serialized_msg = msg.SerializeToString()
-    sock.sendto(serialized_msg, (ROBOT_IP, SEND_PORT))
-
 def main():
-    ip_pc = None
-    
     pc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     mreq = struct.pack('4sl', socket.inet_aton(MULTICAST_GROUP), socket.INADDR_ANY)
     
@@ -72,26 +45,16 @@ def main():
     pc_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pc_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
     
-    pc_sock.bind(('', RECEIVE_PORT))    
-
-    robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    robot_sock.setsockopt(socket.SOL_SOCKET, 25, struct.pack('16s', b'eth0'))
-
     while True:
         try:
-            newMsg, msg = packet_available(pc_sock)
-        
-            if newMsg:
-                print(f"Received from PC: {msg}")
-                if make_command(msg) is not None:
-                    print("Sending to robot")
-                    send2robot(make_command(msg), robot_sock)
+            msg = generate_feedback()
+            send_feedback(msg, pc_sock)
+            time.sleep(1/90)
 
         except KeyboardInterrupt:
             break
 
     pc_sock.close()
-    robot_sock.close()
 
 if __name__ == "__main__":
     main()
