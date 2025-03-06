@@ -2,39 +2,27 @@ syntax = "proto3";
 
 package communication;
 
-message Communication {
-  repeated OutputRobot output = 1;
-}
-
-message OutputRobot {
-  optional uint32 id = 1;
-  double vx = 2;
-  double vy = 3;
-  double vw = 4;
-  bool front = 5;
-  bool chip = 6;
-  bool charge = 7;
-  double kick_strength = 8;
-  bool dribbler = 9;
-  double dribbler_speed = 10;
-}
-
-message Flags {
-  bool robot_locked = 1;
-  bool critical_move = 2;
-  bool global_speed = 3;
-}
-
-message RobotInfo {
+message Feedback {
+  // Robot ID
   uint32 id = 1;
-  double vx = 2;
-  double vy = 3;
-  double w = 4;
+
+  // Sensors
   double battery = 5;
   double kickLoad = 6;
-  bool ball = 7;
-  double m1 = 8;
-  double m2 = 9;
-  double m3 = 10;
-  double m4 = 11;
+  bool irBall = 7;
+  
+  // Motors
+  Motors velocity = 8;
+  Motors current = 9;
+  
+  // Timestamp
+  uint64 timestamp = 10;
 }
+
+message Motors {
+  double m1 = 1;
+  double m2 = 2;
+  double m3 = 3;
+  double m4 = 4;
+}
+
